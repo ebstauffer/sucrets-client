@@ -1,5 +1,4 @@
 vendor
-.secrets
 .env
 .git
 .idea

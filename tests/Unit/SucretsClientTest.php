@@ -24,7 +24,7 @@ use SucretsClient\SucretsException;
 #[CoversClass(SucretsException::class)]
 final class SucretsClientTest extends TestCase
 {
-    private const string API_KEY = 'test-api-key-123';
+    private const API_KEY = 'test-api-key-123';
 
     private MockHandler $mock;
 
@@ -136,12 +136,24 @@ final class SucretsClientTest extends TestCase
         $this->client()->fetch([]);
     }
 
+    #[Test]
+    public function itDefaultsToTheProductionUrl(): void
+    {
+        $this->mock = new MockHandler([new Response(200, [], '{"secrets":{},"missing":[],"denied":[]}')]);
+        $factory = new HttpFactory();
+        $client = new SucretsClient(new Client(['handler' => HandlerStack::create($this->mock)]), $factory, $factory, self::API_KEY);
+
+        $client->fetch(['A']);
+
+        self::assertSame('https://sucrets.safehiring.io/v1/secrets', (string) $this->mock->getLastRequest()?->getUri());
+    }
+
     private function client(Response|\Throwable ...$queue): SucretsClient
     {
         $this->mock = new MockHandler(array_values($queue));
         $stack = HandlerStack::create($this->mock);
         $factory = new HttpFactory();
 
-        return new SucretsClient(new Client(['handler' => $stack]), $factory, $factory, 'https://sucrets.test/', self::API_KEY);
+        return new SucretsClient(new Client(['handler' => $stack]), $factory, $factory, self::API_KEY, 'https://sucrets.test/');
     }
 }

@@ -1,6 +1,9 @@
 # sucrets-client
 
-A small **demo client** for sucrets, the internal credentials service. It shows the whole round trip: request tokens from the sucrets HTTP API, get Defuse ciphertext back, and decrypt it locally with the shared key. Keep it small and readable. It's an example for other teams, not a framework.
+A small **PHP client library** for sucrets, the internal credentials service. It covers the whole round trip: request tokens from the sucrets HTTP API, get Defuse ciphertext back, and decrypt it locally with the shared key. Other PHP projects install it with Composer from this git repo (`safehiring/sucrets-client`, tagged semver releases). Keep it small and readable. It's a thin client, not a framework.
+
+- The library is `src/` only (namespace `SucretsClient\`).
+- Its public API (`SucretsClient`, `Decryptor`, `KeyLoader`, `FetchResult`, `SucretsException`) is a semver contract: breaking changes need a major version.
 
 ## The sucrets API (the contract this client codes against)
 - `POST https://sucrets.safehiring.io/v1/secrets`, header `x-api-key: <key>`, `Content-Type: application/json`
@@ -19,55 +22,59 @@ A small **demo client** for sucrets, the internal credentials service. It shows 
 
 ## Secrets handling (non-negotiable)
 - **Never log, print, or put in exception messages:** decrypted values, ciphertext, the API key, or the Defuse key. Token *names* are fine.
-- The demo proves decryption worked **without revealing values**. It shows, per token, that it decrypted, plus the plaintext length and a masked preview at most (e.g. `ab…` / `•••`). Don't add a flag that prints full values.
 - **Ciphertext** is Defuse `php-encryption` **v2** hex (starts with `def50200`). Decrypt with `Crypto::decrypt($ciphertext, Key::loadFromAsciiSafeString($asciiKey))`. Catch `WrongKeyOrModifiedCiphertextException` and report the *token name* only.
-- **Key sources:** both keys come from a Docker secret file first, falling back to an env var. They never come from code, the repo, or CLI arguments.
+- Mark parameters that carry keys or ciphertext `#[\SensitiveParameter]`.
+- **Key sources (`KeyLoader`):** both keys come from a Docker secret file first, falling back to an env var. They never come from code, the repo, or CLI arguments.
   - API key: `SUCRETS_API_KEY_FILE` (default `/run/secrets/sucrets_api_key`), fallback `SUCRETS_API_KEY`.
   - Defuse key: `SUCRETS_ENCRYPTION_KEY_FILE` (default `/run/secrets/sucrets_encryption_key`), fallback `SUCRETS_ENCRYPTION_KEY`.
   - Trim one trailing newline from files.
-  - `docker-compose.yml` blanks `SUCRETS_ENCRYPTION_KEY` (env vars show in `docker inspect`). In Compose the Defuse key comes only from the secret file. Keep it that way.
   - The `x-api-key` is **not** the decryption key. The Defuse key is distributed out of band and never sent over the network.
   - Exception: when `Key::loadFromAsciiSafeString()` fails, throw `SucretsException` **without** `previous`. This matches the server's `EncryptionKeyProvider` and keeps the trace clean.
-- Local secret files live in `.secrets/` (git-ignored, `chmod 600`). Never commit `.env` or `.secrets/`.
+- Never commit `.env`, `.secrets/` or any key material. Tests generate throwaway keys with `Key::createNewRandomKey()`.
 
 ## Tech stack
-- **PHP 8.5**, strict types everywhere.
-- **Guzzle 7 through PSR-18:** type-hint `Psr\Http\Client\ClientInterface` + PSR-17 `RequestFactoryInterface`, call `sendRequest()`.
+- **PHP:** the library supports **PHP ≥ 8.2** (`composer.json`, enforced by PHPStan `phpVersion` 8.2–8.5). The dev container runs **8.5**.
+  - Don't use syntax newer than 8.2 in `src/` or `tests/`: no typed class constants, no `#[\Override]`.
+  - Strict types everywhere.
+- **Library runtime deps, and nothing else:** `defuse/php-encryption ^2.4`, `psr/http-client`, `psr/http-factory`, `psr/http-message`.
+- **HTTP through PSR-18 / PSR-17 interfaces only:** type-hint `Psr\Http\Client\ClientInterface`, `RequestFactoryInterface` and `StreamFactoryInterface`, call `sendRequest()`. The library never references Guzzle.
   - Check `getStatusCode()` explicitly.
   - Catch `ClientExceptionInterface` (transport) and `\JsonException` (decode with `JSON_THROW_ON_ERROR`).
-  - Timeouts: connect 2s, total 5s.
-- **defuse/php-encryption ^2.4**
-- **Symfony Console** for the demo command (`bin/demo`), output via `SymfonyStyle`.
-- No framework, no DI container, no database. Wire the few objects by hand in `bin/demo`.
-- **Docker & Compose:** service name `client`, image based on `php:8.5-cli`.
+  - Timeouts are the caller's HTTP client's job. The README recommends connect 2s, total 5s.
+- **Dev only (`require-dev`):** Guzzle 7 (the tests' `MockHandler` and PSR-17 factories), PHPUnit, PHPStan, PHP-CS-Fixer.
+- No framework, no DI container, no database.
+- **Docker & Compose:** dev environment only. Service name `client`, image based on `php:8.5-cli`.
+- **Distribution:**
+  - Consumers add `{"type": "vcs", "url": "git@github.com:ebstauffer/sucrets-client.git"}` to `repositories` and require a tag.
+  - `.gitattributes` `export-ignore`s everything but `src/`, `composer.json` and `README.md`.
+  - `composer.lock` is git-ignored, as is usual for a library.
 
 ## Layout
 ```text
-├── bin/demo                 # entry point: builds the objects, runs the command
 ├── src/                     # Namespace: SucretsClient\
 │   ├── SucretsClient.php    # fetch(tokens) → FetchResult (ciphertexts, missing, denied); throws SucretsException
 │   ├── Decryptor.php        # ciphertext → plaintext with the Defuse key
 │   ├── KeyLoader.php        # reads a key from file, else env; throws if neither
-│   └── Command/DemoCommand.php
+│   ├── FetchResult.php
+│   └── SucretsException.php
 ├── tests/Unit/              # Guzzle MockHandler; no network
-├── .secrets/                # api_key, encryption_key (git-ignored)
-├── docker-compose.yml
+├── Dockerfile, docker-compose.yml   # dev environment
 └── composer.json
 ```
 
 ## Coding standards
 - `declare(strict_types=1);` at the top of every PHP file. PER coding style.
 - Explicit types on properties, arguments and returns. `private readonly` promoted constructor properties. `final` classes.
-- Throw a domain exception (`SucretsException`) with a safe message, not `null`. Pass the underlying exception as `previous`.
-- Never `echo`, `print`, `var_dump`, `die()` or `exit()`. Write output through `SymfonyStyle`. Exit codes: `Command::SUCCESS` / `FAILURE` / `INVALID`.
+- Throw a domain exception (`SucretsException`) with a safe message, not `null`. Pass the underlying exception as `previous`, except for the Defuse key-load case above.
+- The library never writes output: no `echo`, `print`, `var_dump`, `die()` or `exit()`, and no logging. Callers decide what to show.
 - Unit tests use PHPUnit attributes (`#[Test]`, `#[CoversClass]`) and must not touch the network.
 
 ## Commands
 Compose lifecycle (`up`, `down`, `build`) runs on the host. **Everything else runs inside the container:**
 ```bash
 docker compose exec client composer install
-docker compose exec client bin/demo MEZMO_KEY OTHER_TOKEN
 docker compose exec client composer check     # style + PHPStan (level 8) + unit tests
+docker compose exec client composer cs-fix
 ```
 
 ## Quality gates
@@ -78,7 +85,9 @@ docker compose exec client composer check     # style + PHPStan (level 8) + unit
 ## Git
 - Conventional Commits (`feat(client): …`), lowercase, ≤ 72 chars, no trailing period.
 - Only commit or push when asked.
+- Releases are semver tags (`v1.0.0`). Consumers pin to them.
 
 ## AI instructions
 - **Name:** your name is **Nigel**.
-- Keep it a demo: prefer fewer files and plain code over abstractions. Ask before adding dependencies beyond Guzzle, Defuse, Symfony Console and the dev tools.
+- Keep it small: prefer fewer files and plain code over abstractions.
+- Ask before adding dependencies. Runtime deps are Defuse and the PSR interfaces only. Guzzle and the quality tools stay in `require-dev`.

@@ -15,15 +15,20 @@ use Psr\Http\Message\StreamFactoryInterface;
  */
 final class SucretsClient
 {
-    public const int MAX_TOKENS = 100;
+    public const DEFAULT_URL = 'https://sucrets.safehiring.io';
 
+    public const MAX_TOKENS = 100;
+
+    /**
+     * Any PSR-18 client works; set a connect timeout of about 2s and a total timeout of about 5s on it.
+     */
     public function __construct(
         private readonly ClientInterface $http,
         private readonly RequestFactoryInterface $requests,
         private readonly StreamFactoryInterface $streams,
-        private readonly string $baseUrl,
         #[\SensitiveParameter]
         private readonly string $apiKey,
+        private readonly string $baseUrl = self::DEFAULT_URL,
     ) {}
 
     /**

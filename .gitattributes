@@ -1,0 +1,11 @@
+# Keep the Composer dist of the library to src/ plus metadata.
+/.dockerignore          export-ignore
+/.gitattributes         export-ignore
+/.gitignore             export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/CLAUDE.md              export-ignore
+/Dockerfile             export-ignore
+/docker-compose.yml     export-ignore
+/phpstan.neon           export-ignore
+/phpunit.xml            export-ignore
+/tests                  export-ignore

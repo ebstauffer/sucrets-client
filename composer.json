@@ -1,13 +1,23 @@
 {
     "name": "safehiring/sucrets-client",
-    "description": "Demo client for the sucrets credentials service",
-    "type": "project",
+    "description": "PHP client for sucrets, the internal credentials service: fetch tokens and decrypt them locally",
+    "type": "library",
     "license": "proprietary",
     "require": {
-        "php": ">=8.5",
+        "php": ">=8.2",
         "defuse/php-encryption": "^2.4",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.1 || ^2.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
         "guzzlehttp/guzzle": "^7.9",
-        "symfony/console": "^8.1"
+        "phpstan/phpstan": "^2",
+        "phpunit/phpunit": "^11"
+    },
+    "suggest": {
+        "guzzlehttp/guzzle": "A PSR-18 HTTP client and PSR-17 factories (GuzzleHttp\\Psr7\\HttpFactory) to pass to SucretsClient"
     },
     "autoload": {
         "psr-4": {
@@ -19,7 +29,6 @@
             "SucretsClient\\Tests\\": "tests/"
         }
     },
-    "bin": ["bin/demo"],
     "config": {
         "sort-packages": true
     },
@@ -29,10 +38,5 @@
         "phpstan": "phpstan analyse --memory-limit=512M",
         "test": "phpunit",
         "check": ["@cs", "@phpstan", "@test"]
-    },
-    "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.95",
-        "phpstan/phpstan": "^2",
-        "phpunit/phpunit": "^11"
     }
 }

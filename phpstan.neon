@@ -1,6 +1,9 @@
 parameters:
     level: 8
+    # The library supports PHP 8.2+; the dev container runs 8.5.
+    phpVersion:
+        min: 80200
+        max: 80599
     paths:
-        - bin/demo
         - src
         - tests
