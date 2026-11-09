@@ -17,8 +17,9 @@ final class Decryptor
     {
         try {
             $this->key = Key::loadFromAsciiSafeString($asciiKey);
-        } catch (BadFormatException $e) {
-            throw new SucretsException('The encryption key is not a valid Defuse key.', previous: $e);
+        } catch (BadFormatException) {
+            // Defuse's messages don't include key material, but don't chain anyway: keep the trace clean.
+            throw new SucretsException('The encryption key is not a valid Defuse key.');
         }
     }
 

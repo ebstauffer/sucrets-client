@@ -9,7 +9,11 @@ services:
       # Optional overrides / fallbacks; passed through only if set on the host.
       - SUCRETS_URL
       - SUCRETS_API_KEY
-      - SUCRETS_ENCRYPTION_KEY
+      # The Defuse key comes only from the secret file below. Blank the env var so a host or
+      # .env value can't leak in (env vars show up in `docker inspect`).
+      - SUCRETS_ENCRYPTION_KEY=
+    # The Defuse key is distributed out of band as a file. It never travels through sucrets,
+    # and the x-api-key is not the decryption key.
     secrets:
       - sucrets_api_key
       - sucrets_encryption_key

@@ -25,6 +25,9 @@ A small **demo client** for sucrets, the internal credentials service. It shows 
   - API key: `SUCRETS_API_KEY_FILE` (default `/run/secrets/sucrets_api_key`), fallback `SUCRETS_API_KEY`.
   - Defuse key: `SUCRETS_ENCRYPTION_KEY_FILE` (default `/run/secrets/sucrets_encryption_key`), fallback `SUCRETS_ENCRYPTION_KEY`.
   - Trim one trailing newline from files.
+  - `docker-compose.yml` blanks `SUCRETS_ENCRYPTION_KEY` (env vars show in `docker inspect`). In Compose the Defuse key comes only from the secret file. Keep it that way.
+  - The `x-api-key` is **not** the decryption key. The Defuse key is distributed out of band and never sent over the network.
+  - Exception: when `Key::loadFromAsciiSafeString()` fails, throw `SucretsException` **without** `previous`. This matches the server's `EncryptionKeyProvider` and keeps the trace clean.
 - Local secret files live in `.secrets/` (git-ignored, `chmod 600`). Never commit `.env` or `.secrets/`.
 
 ## Tech stack

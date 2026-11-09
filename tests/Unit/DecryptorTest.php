@@ -50,6 +50,7 @@ final class DecryptorTest extends TestCase
             self::fail('Expected a SucretsException');
         } catch (SucretsException $e) {
             self::assertStringNotContainsString('not-a-real-key', $e->getMessage());
+            self::assertNull($e->getPrevious(), 'Defuse exception must not be chained');
         }
     }
 }

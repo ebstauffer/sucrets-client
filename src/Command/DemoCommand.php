@@ -35,7 +35,19 @@ final class DemoCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('tokens', InputArgument::REQUIRED | InputArgument::IS_ARRAY, 'Token names, e.g. MEZMO_KEY');
+        $this
+            ->addArgument('tokens', InputArgument::REQUIRED | InputArgument::IS_ARRAY, 'Token names, e.g. MEZMO_KEY')
+            ->setHelp(<<<'HELP'
+                Fetches the tokens' ciphertext from sucrets and decrypts it locally, showing only
+                the status, length and a masked preview of each value.
+
+                Two different keys are involved:
+                  - the API key (x-api-key) authenticates this client to sucrets;
+                  - the Defuse encryption key decrypts the values. It is NOT the API key, it never
+                    travels through sucrets, and you should never send it over the network. You get
+                    it out of band and mount it as the secret file SUCRETS_ENCRYPTION_KEY_FILE
+                    (default /run/secrets/sucrets_encryption_key).
+                HELP);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
