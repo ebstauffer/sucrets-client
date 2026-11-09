@@ -1,0 +1,21 @@
+services:
+  client:
+    build: .
+    user: "${UID:-1000}:${GID:-1000}"
+    init: true
+    volumes:
+      - .:/app
+    environment:
+      # Optional overrides / fallbacks; passed through only if set on the host.
+      - SUCRETS_URL
+      - SUCRETS_API_KEY
+      - SUCRETS_ENCRYPTION_KEY
+    secrets:
+      - sucrets_api_key
+      - sucrets_encryption_key
+
+secrets:
+  sucrets_api_key:
+    file: ./.secrets/api_key
+  sucrets_encryption_key:
+    file: ./.secrets/encryption_key

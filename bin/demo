@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
+use SucretsClient\Command\DemoCommand;
+use SucretsClient\KeyLoader;
+use Symfony\Component\Console\Application;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$baseUrl = getenv('SUCRETS_URL') ?: 'https://sucrets.safehiring.io';
+
+$http = new Client(['connect_timeout' => 2, 'timeout' => 5]);
+
+$command = new DemoCommand(new KeyLoader(getenv()), $http, new HttpFactory(), $baseUrl);
+
+$app = new Application('sucrets-client');
+$app->addCommand($command);
+$app->setDefaultCommand('demo', true);
+$app->run();

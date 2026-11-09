@@ -1,0 +1,6 @@
+/vendor/
+/.env
+/.secrets/
+/.phpunit.cache/
+/.php-cs-fixer.cache
+/.idea/
